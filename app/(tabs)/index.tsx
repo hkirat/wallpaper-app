@@ -1,70 +1,84 @@
-import { Image, StyleSheet, Platform } from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { StyleSheet, Dimensions, Text, View, Image } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useWallpapers } from "@/hooks/useWallpapers";
+import { SplitView } from "@/components/SplitView";
+import Carousel from 'react-native-reanimated-carousel';
+import { useState } from "react";
+import { useCarousel } from "@/hooks/useCarousel";
+import Animated, { interpolate, useAnimatedStyle } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ThemedSafeAreaView } from "@/components/ThemedSafeAreaView";
 
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+const TOPBAR_HEIGHT = 250;
+
+export default function explore() {
+    const wallpapers = useWallpapers();
+    const width = Dimensions.get('window').width;
+    const [yOffset, setScrollY] = useState(0);
+    const carouselItems = useCarousel();
+
+    const headerAnimatedStyle = useAnimatedStyle(() => {
+      return {
+        transform: [
+          {
+            scale: interpolate(yOffset, [-TOPBAR_HEIGHT, 0, TOPBAR_HEIGHT], [1.5, 1, 1]),
+          },
+        ],
+      };
+    });
+
+    const textAnimatedStyle = useAnimatedStyle(() => {
+      return {
+        opacity: interpolate(yOffset, [-TOPBAR_HEIGHT, TOPBAR_HEIGHT / 2, TOPBAR_HEIGHT], [1, 1, 0]),
+      };
+    });
+
+    return <ThemedSafeAreaView style={{flex: 1}}>
+      <Animated.View style={[{height: Math.max(0, TOPBAR_HEIGHT - yOffset)}, headerAnimatedStyle]}>
+        <Carousel
+          width={width}
+          data={carouselItems}
+          onSnapToItem={(index) => console.log('current index:', index)}
+          renderItem={({ index }) => (
+            <>
+              <View
+                style={{
+                    flex: 1,
+                    borderWidth: 1,
+                    justifyContent: 'center',
+                }}
+              >
+                <Image source={{uri: carouselItems[index].image}} style={{height: TOPBAR_HEIGHT}} />
+              </View>
+
+              <LinearGradient colors={['transparent', 'black']} style={{flex: 1, position: "absolute", zIndex: 10, height: TOPBAR_HEIGHT / 2, width: "100%", bottom: 0}}>
+                <Animated.View style={textAnimatedStyle}>
+                  <Text style={[{color: "white", paddingTop: TOPBAR_HEIGHT / 3, textAlign: "center", fontSize: 30, fontWeight: "600"}]}>{carouselItems[index].title}</Text>
+                </Animated.View>
+              </LinearGradient>
+            </>
+          )}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+      </Animated.View>
+      <View style={{borderRadius: 20}}>
+        <SplitView onScroll={(yOffset) => {
+          setScrollY(yOffset)
+        }} wallpapers={wallpapers} />
+      </View>
+    </ThemedSafeAreaView>
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+    container: {
+        flexDirection: "row",
+        flex: 1
+    },
+    innerContainer: {
+        flex: 1,
+        padding: 10
+    },
+    imageContainer: {
+        paddingVertical: 10
+    }
+})
